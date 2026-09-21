@@ -27,8 +27,8 @@ jobs:
 
     env:
       SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/woningmatch
-      SPRING_DATASOURCE_USERNAME: woningmatch
-      SPRING_DATASOURCE_PASSWORD: woningmatch
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
     steps:
       - name: Checkout repository
