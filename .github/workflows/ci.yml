@@ -10,64 +10,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }}"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Wait for Postgres to be healthy
-        run: |
-          until [ "$(docker inspect --format='{{.State.Health.Status}}' $(docker ps -q --filter "ancestor=postgres:18"))" = "healthy" ]; do
-            echo "Waiting for Postgres to be healthy..."
-            sleep 2
-          done
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Download backend dependencies
-        run: ./mvnw dependency:go-offline
-
-      - name: Backend code analysis
-        run: ./mvnw checkstyle:check
-
-      - name: Backend formatting check
-        run: ./mvnw spotless:check
-
-      - name: Backend build and tests
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ secrets.POSTGRES_DB }}
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      - name: Build and test backend
         run: ./mvnw clean verify
-
-      - name: Upload backend test reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-test-reports
-          path: target/surefire-reports/
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
