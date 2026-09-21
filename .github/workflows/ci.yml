@@ -10,6 +10,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: woningmatch
+          POSTGRES_PASSWORD: woningmatch
+          POSTGRES_DB: woningmatch
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U woningmatch -d woningmatch"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/woningmatch
+      SPRING_DATASOURCE_USERNAME: woningmatch
+      SPRING_DATASOURCE_PASSWORD: woningmatch
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
