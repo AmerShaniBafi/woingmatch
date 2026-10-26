@@ -1,10 +1,13 @@
 package nl.woningmatch.woningmatch.Auth.Service;
 
+import nl.woningmatch.woningmatch.Auth.Dto.LoginRequest;
 import nl.woningmatch.woningmatch.Auth.Dto.RegisterRequest;
 import nl.woningmatch.woningmatch.User.Model.UserModel;
 import nl.woningmatch.woningmatch.User.Repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 
@@ -57,4 +60,30 @@ public class AuthService {
 
         return userRepository.save(user);
     }
+
+
+    public UserModel login(LoginRequest request) {
+
+        UserModel user = userRepository
+                .findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Ongeldig e-mailadres of wachtwoord"
+                ));
+
+        boolean passwordCorrect = passwordEncoder.matches(
+                request.getPassword(),
+                user.getPasswordHash()
+        );
+
+        if (!passwordCorrect) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Ongeldig e-mailadres of wachtwoord"
+            );
+        }
+
+        return user;
+    }
+
 }

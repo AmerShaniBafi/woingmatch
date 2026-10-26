@@ -1,5 +1,6 @@
 package nl.woningmatch.woningmatch.Auth.Api;
 
+import nl.woningmatch.woningmatch.Auth.Dto.LoginRequest;
 import nl.woningmatch.woningmatch.Auth.Dto.RegisterRequest;
 import nl.woningmatch.woningmatch.User.Dto.UserResponse;
 import nl.woningmatch.woningmatch.Auth.Service.AuthService;
@@ -37,4 +38,21 @@ public class AuthController {
                 .status(HttpStatus.CREATED)
                 .body(response);
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<UserResponse> login(
+            @RequestBody LoginRequest request
+    ) {
+        UserModel user = authService.login(request);
+
+        UserResponse response = new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }

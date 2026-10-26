@@ -29,7 +29,7 @@ public class UserModel {
     @Column(nullable = false)
     private String role;
 
-    public UserModel() {
+    public UserModel(String email, String passwordHash) {
     }
 
     public UserModel(
