@@ -1,9 +1,11 @@
+
 package nl.woningmatch.woningmatch.Auth.Service;
 
 import nl.woningmatch.woningmatch.Auth.Dto.LoginRequest;
 import nl.woningmatch.woningmatch.Auth.Dto.RegisterRequest;
 import nl.woningmatch.woningmatch.User.Model.UserModel;
 import nl.woningmatch.woningmatch.User.Repository.UserRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,29 +21,38 @@ public class AuthService {
 
     public AuthService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
-    ) {
+            PasswordEncoder passwordEncoder) {
+
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+    // Gebruiker registreren
     public UserModel register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("E-mailadres bestaat al");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "E-mailadres bestaat al"
+            );
         }
 
-        if (request.getPassword().length() < 8) {
-            throw new RuntimeException(
+        if (request.getPassword() == null ||
+                request.getPassword().length() < 8) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Wachtwoord moet minimaal 8 tekens bevatten"
             );
         }
 
-        LocalDate minimumDate =
-                LocalDate.now().minusYears(16);
+        LocalDate minimumDate = LocalDate.now().minusYears(16);
 
-        if (request.getDateOfBirth().isAfter(minimumDate)) {
-            throw new RuntimeException(
+        if (request.getDateOfBirth() == null ||
+                request.getDateOfBirth().isAfter(minimumDate)) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Gebruiker moet minimaal 16 jaar oud zijn"
             );
         }
@@ -61,22 +72,23 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-
+    // Gebruiker inloggen
     public UserModel login(LoginRequest request) {
 
         UserModel user = userRepository
                 .findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Ongeldig e-mailadres of wachtwoord"
-                ));
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "Ongeldig e-mailadres of wachtwoord"
+                        )
+                );
 
-        boolean passwordCorrect = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPasswordHash()
-        );
+        if (request.getPassword() == null ||
+                !passwordEncoder.matches(
+                        request.getPassword(),
+                        user.getPasswordHash())) {
 
-        if (!passwordCorrect) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
                     "Ongeldig e-mailadres of wachtwoord"
@@ -86,4 +98,15 @@ public class AuthService {
         return user;
     }
 
+    // Gebruiker ophalen via ID
+    public UserModel findById(Long id) {
+
+        return userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Gebruiker niet gevonden"
+                        )
+                );
+    }
 }
