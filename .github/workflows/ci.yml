@@ -33,8 +33,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Disable shallow clones so SonarQube can attribute code authors
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -43,18 +41,8 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Cache SonarQube packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: Build, test, and analyze backend
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} # Keep this if self-hosted; remove if using SonarCloud
-        run: ./mvnw clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=woningmatch
+      - name: Build and test backend
+        run: ./mvnw clean verify
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
