@@ -112,11 +112,10 @@ public class SecurityConfig {
                 "DELETE",
                 "OPTIONS"
         ));
-
         configuration.setAllowedHeaders(List.of(
                 "Content-Type",
                 "Authorization",
-                "X-CSRF-TOKEN"
+                "X-XSRF-TOKEN"
         ));
 
         configuration.setAllowCredentials(true);
