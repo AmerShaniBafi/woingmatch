@@ -19,7 +19,6 @@ jobs:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
-        # GEVALIDEERD: Gebruik de omgevingsvariabelen in plaats van hardcoded waarden
         options: >-
           --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
           --health-interval 10s
@@ -27,7 +26,6 @@ jobs:
           --health-retries 5
 
     env:
-      # Zorg dat de database-naam in de URL matcht met je secret
       SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ secrets.POSTGRES_DB }}
       SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
       SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -52,11 +50,16 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
+      # GEVALIDEERD: Organisatie en cloud-URL zijn nu correct toegevoegd aan de Maven-plugin
       - name: Build, test, and analyze backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: ./mvnw clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=woningmatch
+        run: >
+          ./mvnw clean verify 
+          org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar 
+          -Dsonar.projectKey=woningmatch 
+          -Dsonar.organization=amershanibafi 
+          -Dsonar.host.url=https://sonarcloud.io
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
