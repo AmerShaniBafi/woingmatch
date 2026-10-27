@@ -19,14 +19,16 @@ jobs:
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
+        # GEVALIDEERD: Gebruik de omgevingsvariabelen in plaats van hardcoded waarden
         options: >-
-          --health-cmd "pg_isready -U woningmatch -d woningmatch"
+          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/woningmatch
+      # Zorg dat de database-naam in de URL matcht met je secret
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ secrets.POSTGRES_DB }}
       SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
       SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
@@ -34,7 +36,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Disable shallow clones so SonarQube can attribute code authors
+          fetch-depth: 0
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -53,7 +55,7 @@ jobs:
       - name: Build, test, and analyze backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} # Keep this if self-hosted; remove if using SonarCloud
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: ./mvnw clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=woningmatch
 
       - name: Log in to Docker Hub
