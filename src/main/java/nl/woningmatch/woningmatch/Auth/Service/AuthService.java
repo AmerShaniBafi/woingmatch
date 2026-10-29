@@ -98,15 +98,4 @@ public class AuthService {
         return user;
     }
 
-    // Gebruiker ophalen via ID
-    public UserModel findById(Long id) {
-
-        return userRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Gebruiker niet gevonden"
-                        )
-                );
-    }
 }

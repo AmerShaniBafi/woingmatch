@@ -79,18 +79,5 @@ public class AuthController {
         );
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(
-            @AuthenticationPrincipal UserPrincipal principal) {
 
-        if (principal == null) {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .build();
-        }
-
-        UserModel user = authService.findById(principal.id());
-
-        return ResponseEntity.ok(toUserResponse(user));
-    }
 }
