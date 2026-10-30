@@ -1,10 +1,11 @@
+
 name: CI / Docker Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -54,10 +55,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >
-          ./mvnw clean verify 
-          org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar 
-          -Dsonar.projectKey=woningmatch 
-          -Dsonar.organization=amershanibafi 
+          ./mvnw clean verify
+          org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar
+          -Dsonar.projectKey=woningmatch
+          -Dsonar.organization=amershanibafi
           -Dsonar.host.url=https://sonarcloud.io
 
       - name: Log in to Docker Hub
@@ -69,8 +70,14 @@ jobs:
 
       - name: Build Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/woningmatch:latest
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: |
+          docker build . --file Dockerfile \
+            --tag "$DOCKER_USERNAME/woningmatch:latest"
 
       - name: Push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/woningmatch:latest
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: docker push "$DOCKER_USERNAME/woningmatch:latest"
