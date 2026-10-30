@@ -50,7 +50,6 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      # GEVALIDEERD: Organisatie en cloud-URL zijn nu correct toegevoegd aan de Maven-plugin
       - name: Build, test, and analyze backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
