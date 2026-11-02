@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -64,12 +65,41 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+
+                        // Iedereen mag registreren, inloggen en een CSRF-token ophalen.
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/csrf",
                                 "/error"
                         ).permitAll()
+
+                        // Alleen ADMIN mag woningen toevoegen.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/woningen"
+                        ).hasRole("ADMIN")
+
+                        // Alleen ADMIN mag woningen wijzigen.
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/woningen/*"
+                        ).hasRole("ADMIN")
+
+                        // Alleen ADMIN mag woningen verwijderen.
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/woningen/*"
+                        ).hasRole("ADMIN")
+
+                        // USER en ADMIN mogen woningen bekijken.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/woningen",
+                                "/api/woningen/*"
+                        ).hasAnyRole("USER", "ADMIN")
+
+                        // Andere endpoints vereisen een ingelogde gebruiker.
                         .anyRequest().authenticated()
                 )
 
