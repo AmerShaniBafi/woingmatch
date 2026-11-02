@@ -63,17 +63,14 @@ jobs:
             -Dsonar.projectKey=woningmatch \
             -Dsonar.organization=amershanibafi
 
-      - name: Log in to Docker Hub
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Build Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/woningmatch:latest
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: docker build . --file Dockerfile --tag "$DOCKER_USERNAME/woningmatch:latest"
 
       - name: Push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/woningmatch:latest
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        run: docker push "$DOCKER_USERNAME/woningmatch:latest"
