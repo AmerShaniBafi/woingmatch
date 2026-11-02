@@ -48,6 +48,10 @@ public class UserModel {
         this.role = role;
     }
 
+    public UserModel() {
+
+    }
+
     public Long getId() {
         return id;
     }

@@ -3,9 +3,9 @@ name: CI / Docker Build
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -22,15 +22,16 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+          --health-cmd "pg_isready -U woningmatch -d woningmatch"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ secrets.POSTGRES_DB }}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/woningmatch
       SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
       SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
     steps:
       - name: Checkout repository
@@ -55,12 +56,12 @@ jobs:
       - name: Build, test, and analyze backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: >
-          ./mvnw clean verify
-          org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar
-          -Dsonar.projectKey=woningmatch
-          -Dsonar.organization=amershanibafi
-          -Dsonar.host.url=https://sonarcloud.io
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          ./mvnw clean verify \
+            org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
+            -Dsonar.projectKey=woningmatch \
+            -Dsonar.organization=amershanibafi
 
       - name: Log in to Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -71,14 +72,8 @@ jobs:
 
       - name: Build Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        run: |
-          docker build . --file Dockerfile \
-            --tag "$DOCKER_USERNAME/woningmatch:latest"
+        run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_USERNAME }}/woningmatch:latest
 
       - name: Push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        run: docker push "$DOCKER_USERNAME/woningmatch:latest"
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/woningmatch:latest
