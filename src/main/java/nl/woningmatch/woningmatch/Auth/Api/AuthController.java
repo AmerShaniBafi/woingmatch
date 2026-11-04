@@ -12,6 +12,7 @@ import nl.woningmatch.woningmatch.Security.UserPrincipal;
 import nl.woningmatch.woningmatch.User.Dto.UserResponse;
 import nl.woningmatch.woningmatch.User.Model.UserModel;
 
+import nl.woningmatch.woningmatch.User.Repository.UserRepository;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +26,16 @@ public class AuthController {
     private final AuthService authService;
     private final JWTService jwtService;
     private final CookieService cookieService;
-
+    private final UserRepository userRepository;
     public AuthController(
             AuthService authService,
             JWTService jwtService,
-            CookieService cookieService) {
+            CookieService cookieService, UserRepository userRepository) {
 
         this.authService = authService;
         this.jwtService = jwtService;
         this.cookieService = cookieService;
+        this.userRepository = userRepository;
     }
 
     // Account aanmaken
@@ -66,6 +68,23 @@ public class AuthController {
                         cookieService.createJwtCookie(token).toString()
                 )
                 .body(toUserResponse(user));
+    }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> me(
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        // Zoek de actuele gebruikersgegevens in de database.
+        UserModel user = userRepository.findById(principal.id())
+                .orElseThrow(() ->
+                        new org.springframework.web.server.ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "Gebruiker bestaat niet meer"
+                        )
+                );
+
+        return ResponseEntity.ok(toUserResponse(user));
     }
 
     // UserModel omzetten naar UserResponse
