@@ -11,7 +11,20 @@ public class RegisterRequest {
 
     public RegisterRequest() {
     }
+    // Constructor voor het aanmaken van een registratieverzoek
+    public RegisterRequest(
+            String name,
+            LocalDate dateOfBirth,
+            String location,
+            String email,
+            String password) {
 
+        this.name = name;
+        this.dateOfBirth = dateOfBirth;
+        this.location = location;
+        this.email = email;
+        this.password = password;
+    }
     public String getName() {
         return name;
     }
