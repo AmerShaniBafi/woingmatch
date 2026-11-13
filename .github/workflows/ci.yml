@@ -3,9 +3,12 @@ name: CI / Docker Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -18,7 +21,6 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         ports:
           - 5432:5432
         options: >-
@@ -39,12 +41,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: 'maven'
+          cache: maven
+
+      - name: Run service and API tests
+        run: ./mvnw -B clean verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+          if-no-files-found: warn
 
       - name: Cache SonarQube packages
         uses: actions/cache@v4
@@ -53,12 +68,13 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Build, test, and analyze backend
+      - name: Analyze code with SonarQube
+        if: env.SONAR_TOKEN != ''
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          ./mvnw clean verify \
+          ./mvnw -B \
             org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
             -Dsonar.projectKey=woningmatch \
             -Dsonar.organization=amershanibafi
@@ -67,7 +83,17 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        run: docker build . --file Dockerfile --tag "$DOCKER_USERNAME/woningmatch:latest"
+        run: |
+          docker build \
+            --file Dockerfile \
+            --tag "$DOCKER_USERNAME/woningmatch:latest" .
+
+      - name: Login to Docker Hub
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push Docker image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
