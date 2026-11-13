@@ -29,6 +29,7 @@
     <properties>
         <java.version>21</java.version>
         <tomcat.version>11.0.27</tomcat.version>
+        <groovy.version>4.0.28</groovy.version>
     </properties>
     <dependencies>
         <dependency>
@@ -98,6 +99,30 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>0.13.0</version>
             <scope>runtime</scope>
+        </dependency>
+        <!-- -->
+        <!-- REST Assured: API-endpoints testen -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>5.5.6</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers: PostgreSQL-testdatabase -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <version>2.0.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers: integratie met JUnit Jupiter -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <version>2.0.2</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

@@ -28,8 +28,76 @@ public class AuthService {
     }
 
     // Gebruiker registreren
+
     public UserModel register(RegisterRequest request) {
 
+        // Controleer of registratiegegevens aanwezig zijn
+        if (request == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Registratiegegevens ontbreken"
+            );
+        }
+
+        // Naam is verplicht
+        if (request.getName() == null || request.getName().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Naam is verplicht"
+            );
+        }
+
+        // Geboortedatum is verplicht
+        if (request.getDateOfBirth() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Geboortedatum is verplicht"
+            );
+        }
+
+        // Locatie is verplicht
+        if (request.getLocation() == null || request.getLocation().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Locatie is verplicht"
+            );
+        }
+
+        // E-mailadres is verplicht
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "E-mailadres is verplicht"
+            );
+        }
+
+        // Wachtwoord is verplicht
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Wachtwoord is verplicht"
+            );
+        }
+
+        // Wachtwoord moet minimaal 8 tekens bevatten
+        if (request.getPassword().length() < 8) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Wachtwoord moet minimaal 8 tekens bevatten"
+            );
+        }
+
+        // Gebruiker moet minimaal 16 jaar zijn
+        LocalDate minimumDate = LocalDate.now().minusYears(16);
+
+        if (request.getDateOfBirth().isAfter(minimumDate)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Gebruiker moet minimaal 16 jaar oud zijn"
+            );
+        }
+
+        // Controleer of het e-mailadres al bestaat
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -37,28 +105,7 @@ public class AuthService {
             );
         }
 
-        if (request.getPassword() == null ||
-                request.getPassword().length() < 8) {
-
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Wachtwoord moet minimaal 8 tekens bevatten"
-            );
-        }
-
-        LocalDate minimumDate = LocalDate.now().minusYears(16);
-
-        if (request.getDateOfBirth() == null ||
-                request.getDateOfBirth().isAfter(minimumDate)) {
-
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Gebruiker moet minimaal 16 jaar oud zijn"
-            );
-        }
-
-        String passwordHash =
-                passwordEncoder.encode(request.getPassword());
+        String passwordHash = passwordEncoder.encode(request.getPassword());
 
         UserModel user = new UserModel(
                 request.getName(),
