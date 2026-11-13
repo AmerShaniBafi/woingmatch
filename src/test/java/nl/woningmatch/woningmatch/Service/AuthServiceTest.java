@@ -6,31 +6,41 @@ import nl.woningmatch.woningmatch.Auth.Service.AuthService;
 import nl.woningmatch.woningmatch.User.Model.UserModel;
 import nl.woningmatch.woningmatch.User.Repository.UserRepository;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
+
+    private static final String NAME = "Henk";
+    private static final LocalDate BIRTH_DATE = LocalDate.of(2002, 5, 23);
+    private static final String LOCATION = "Tilburg";
+    private static final String EMAIL = "henk@fontys.nl";
+    private static final String PASSWORD = "12345678";
+    private static final String HASHED_PASSWORD = "hashedPassword";
 
     @Mock
     private UserRepository userRepository;
@@ -41,286 +51,173 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    // ---------------------------------------------------------------
+    // Registratie
+    // ---------------------------------------------------------------
 
     @ParameterizedTest(name = "{index} - {0}")
     @MethodSource("invalidRegistrationData")
-    void register_WithMissingRequiredFields_ThrowsBadRequest(String scenario, RegisterRequest request, String expectedMessage)
-    {
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> authService.register(request)
-        );
+    @DisplayName("Registratie met ontbrekende verplichte velden geeft 400")
+    void register_WithMissingRequiredFields_ThrowsBadRequest(
+            String scenario, RegisterRequest request, String expectedMessage) {
 
-        assertEquals(
-                HttpStatus.BAD_REQUEST,
-                exception.getStatusCode()
-        );
+        ResponseStatusException exception = assertRegistrationRejected(request, HttpStatus.BAD_REQUEST);
 
-        assertEquals(
-                expectedMessage,
-                exception.getReason()
-        );
-
-        verify(userRepository, never()).save(any(UserModel.class));
+        assertEquals(expectedMessage, exception.getReason());
     }
 
     static Stream<Arguments> invalidRegistrationData() {
-
-        LocalDate validDate = LocalDate.of(2002, 5, 23);
-
         return Stream.of(
-                Arguments.of(
-                        "Naam ontbreekt",
-                        new RegisterRequest(null, validDate, "Tilburg",
-                                "henk@fontys.nl", "12345678"),
-                        "Naam is verplicht"
-                ),
-
-                Arguments.of(
-                        "Naam is leeg",
-                        new RegisterRequest("", validDate, "Tilburg",
-                                "henk@fontys.nl", "12345678"),
-                        "Naam is verplicht"
-                ),
-
-                Arguments.of(
-                        "Naam bevat alleen spaties",
-                        new RegisterRequest("   ", validDate, "Tilburg",
-                                "henk@fontys.nl", "12345678"),
-                        "Naam is verplicht"
-                ),
-
-                Arguments.of(
-                        "Geboortedatum ontbreekt",
-                        new RegisterRequest("Henk", null, "Tilburg",
-                                "henk@fontys.nl", "12345678"),
-                        "Geboortedatum is verplicht"
-                ),
-
-                Arguments.of(
-                        "Locatie ontbreekt",
-                        new RegisterRequest("Henk", validDate, null,
-                                "henk@fontys.nl", "12345678"),
-                        "Locatie is verplicht"
-                ),
-
-                Arguments.of(
-                        "Locatie is leeg",
-                        new RegisterRequest("Henk", validDate, "",
-                                "henk@fontys.nl", "12345678"),
-                        "Locatie is verplicht"
-                ),
-
-                Arguments.of(
-                        "E-mailadres ontbreekt",
-                        new RegisterRequest("Henk", validDate, "Tilburg",
-                                null, "12345678"),
-                        "E-mailadres is verplicht"
-                ),
-
-                Arguments.of(
-                        "E-mailadres is leeg",
-                        new RegisterRequest("Henk", validDate, "Tilburg",
-                                "", "12345678"),
-                        "E-mailadres is verplicht"
-                ),
-
-                Arguments.of(
-                        "Wachtwoord ontbreekt",
-                        new RegisterRequest("Henk", validDate, "Tilburg",
-                                "henk@fontys.nl", null),
-                        "Wachtwoord is verplicht"
-                ),
-
-                Arguments.of(
-                        "Wachtwoord is leeg",
-                        new RegisterRequest("Henk", validDate, "Tilburg",
-                                "henk@fontys.nl", ""),
-                        "Wachtwoord is verplicht"
-                )
+                Arguments.of("Naam ontbreekt",
+                        registerRequest(null, BIRTH_DATE, LOCATION, EMAIL, PASSWORD),
+                        "Naam is verplicht"),
+                Arguments.of("Naam is leeg",
+                        registerRequest("", BIRTH_DATE, LOCATION, EMAIL, PASSWORD),
+                        "Naam is verplicht"),
+                Arguments.of("Naam bevat alleen spaties",
+                        registerRequest("   ", BIRTH_DATE, LOCATION, EMAIL, PASSWORD),
+                        "Naam is verplicht"),
+                Arguments.of("Geboortedatum ontbreekt",
+                        registerRequest(NAME, null, LOCATION, EMAIL, PASSWORD),
+                        "Geboortedatum is verplicht"),
+                Arguments.of("Locatie ontbreekt",
+                        registerRequest(NAME, BIRTH_DATE, null, EMAIL, PASSWORD),
+                        "Locatie is verplicht"),
+                Arguments.of("Locatie is leeg",
+                        registerRequest(NAME, BIRTH_DATE, "", EMAIL, PASSWORD),
+                        "Locatie is verplicht"),
+                Arguments.of("E-mailadres ontbreekt",
+                        registerRequest(NAME, BIRTH_DATE, LOCATION, null, PASSWORD),
+                        "E-mailadres is verplicht"),
+                Arguments.of("E-mailadres is leeg",
+                        registerRequest(NAME, BIRTH_DATE, LOCATION, "", PASSWORD),
+                        "E-mailadres is verplicht"),
+                Arguments.of("Wachtwoord ontbreekt",
+                        registerRequest(NAME, BIRTH_DATE, LOCATION, EMAIL, null),
+                        "Wachtwoord is verplicht"),
+                Arguments.of("Wachtwoord is leeg",
+                        registerRequest(NAME, BIRTH_DATE, LOCATION, EMAIL, ""),
+                        "Wachtwoord is verplicht")
         );
     }
 
-
-    // TC-01.2: Geldige registratie
     @Test
+    @DisplayName("TC-01.2: Geldige registratie geeft gebruiker terug")
     void register_WithValidData_ReturnsUser() {
+        RegisterRequest request = validRegisterRequest();
 
-        RegisterRequest request = new RegisterRequest(
-                "Henk",
-                LocalDate.of(2002, 5, 23),
-                "Tilburg",
-                "henk@fontys.nl",
-                "12345678"
-        );
-
-        when(passwordEncoder.encode("12345678"))
-                .thenReturn("hashedPassword");
-
+        when(passwordEncoder.encode(PASSWORD)).thenReturn(HASHED_PASSWORD);
         when(userRepository.save(any(UserModel.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         UserModel result = authService.register(request);
 
         assertNotNull(result);
-        assertEquals("Henk", result.getName());
-        assertEquals("henk@fontys.nl", result.getEmail());
-        assertEquals("hashedPassword", result.getPasswordHash());
-
+        assertEquals(NAME, result.getName());
+        assertEquals(EMAIL, result.getEmail());
+        assertEquals(HASHED_PASSWORD, result.getPasswordHash());
         verify(userRepository).save(any(UserModel.class));
     }
 
-    // TC-01.3: Wachtwoord te kort
     @Test
+    @DisplayName("TC-01.3: Te kort wachtwoord geeft 400")
     void register_WithShortPassword_ThrowsBadRequest() {
+        RegisterRequest request = registerRequest(NAME, BIRTH_DATE, LOCATION, EMAIL, "123");
 
-        RegisterRequest request = new RegisterRequest(
-                "Henk",
-                LocalDate.of(2002, 5, 23),
-                "Tilburg",
-                "henk@fontys.nl",
-                "123"
-        );
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> authService.register(request)
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST,
-                exception.getStatusCode());
-
-        verify(userRepository, never()).save(any());
+        assertRegistrationRejected(request, HttpStatus.BAD_REQUEST);
     }
 
-    // TC-01.4: E-mailadres bestaat al
     @Test
+    @DisplayName("TC-01.4: Bestaand e-mailadres geeft 409")
     void register_WithExistingEmail_ThrowsConflict() {
+        RegisterRequest request = validRegisterRequest();
 
-        RegisterRequest request = new RegisterRequest(
-                "Henk",
-                LocalDate.of(2002, 5, 23),
-                "Tilburg",
-                "henk@fontys.nl",
-                "12345678"
-        );
+        when(userRepository.existsByEmail(EMAIL)).thenReturn(true);
 
-        when(userRepository.existsByEmail("henk@fontys.nl"))
-                .thenReturn(true);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> authService.register(request)
-        );
-
-        assertEquals(HttpStatus.CONFLICT,
-                exception.getStatusCode());
-
-        verify(userRepository, never()).save(any());
+        assertRegistrationRejected(request, HttpStatus.CONFLICT);
     }
 
-    // TC-01.5: Gebruiker jonger dan 16 jaar
     @Test
+    @DisplayName("TC-01.5: Gebruiker jonger dan 16 jaar geeft 400")
     void register_WithUnderageUser_ThrowsBadRequest() {
+        RegisterRequest request = registerRequest(
+                NAME, LocalDate.now().minusYears(15), LOCATION, EMAIL, PASSWORD);
 
-        RegisterRequest request = new RegisterRequest(
-                "Henk",
-                LocalDate.now().minusYears(15),
-                "Tilburg",
-                "henk@fontys.nl",
-                "12345678"
-        );
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> authService.register(request)
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST,
-                exception.getStatusCode());
-
-        verify(userRepository, never()).save(any());
+        assertRegistrationRejected(request, HttpStatus.BAD_REQUEST);
     }
 
-    // TC-02.1: Ongeldig e-mailadres
+    // Login
+
     @Test
+    @DisplayName("TC-02.1: Onbekend e-mailadres geeft 401")
     void login_WithUnknownEmail_ThrowsUnauthorized() {
+        LoginRequest request = new LoginRequest("onbekend@fontys.nl", PASSWORD);
 
-        LoginRequest request = new LoginRequest(
-                "onbekend@fontys.nl",
-                "12345678"
-        );
+        when(userRepository.findByEmail("onbekend@fontys.nl")).thenReturn(Optional.empty());
 
-        when(userRepository.findByEmail("onbekend@fontys.nl"))
-                .thenReturn(Optional.empty());
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> authService.login(request)
-        );
-
-        assertEquals(HttpStatus.UNAUTHORIZED,
-                exception.getStatusCode());
+        assertLoginRejected(request);
     }
 
-    // Extra scenario: Onjuist wachtwoord
     @Test
+    @DisplayName("Extra: Onjuist wachtwoord geeft 401")
     void login_WithWrongPassword_ThrowsUnauthorized() {
+        LoginRequest request = new LoginRequest(EMAIL, "verkeerd");
 
-        LoginRequest request = new LoginRequest(
-                "henk@fontys.nl",
-                "verkeerd"
-        );
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(createUser()));
+        when(passwordEncoder.matches("verkeerd", HASHED_PASSWORD)).thenReturn(false);
 
-        UserModel user = createUser();
-
-        when(userRepository.findByEmail("henk@fontys.nl"))
-                .thenReturn(Optional.of(user));
-
-        when(passwordEncoder.matches("verkeerd", "hashedPassword"))
-                .thenReturn(false);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> authService.login(request)
-        );
-
-        assertEquals(HttpStatus.UNAUTHORIZED,
-                exception.getStatusCode());
+        assertLoginRejected(request);
     }
 
-    // TC-02.2: Geldige inloggegevens
     @Test
+    @DisplayName("TC-02.2: Geldige inloggegevens geven gebruiker terug")
     void login_WithValidCredentials_ReturnsUser() {
-
-        LoginRequest request = new LoginRequest(
-                "henk@fontys.nl",
-                "12345678"
-        );
-
+        LoginRequest request = new LoginRequest(EMAIL, PASSWORD);
         UserModel user = createUser();
 
-        when(userRepository.findByEmail("henk@fontys.nl"))
-                .thenReturn(Optional.of(user));
-
-        when(passwordEncoder.matches("12345678", "hashedPassword"))
-                .thenReturn(true);
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(PASSWORD, HASHED_PASSWORD)).thenReturn(true);
 
         UserModel result = authService.login(request);
 
         assertNotNull(result);
-        assertEquals("henk@fontys.nl", result.getEmail());
+        assertEquals(EMAIL, result.getEmail());
         assertSame(user, result);
     }
 
+    // Helpers
+
+    private ResponseStatusException assertRegistrationRejected(
+            RegisterRequest request, HttpStatus expectedStatus) {
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authService.register(request));
+
+        assertEquals(expectedStatus, exception.getStatusCode());
+        verify(userRepository, never()).save(any());
+
+        return exception;
+    }
+
+    private void assertLoginRejected(LoginRequest request) {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> authService.login(request));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    private static RegisterRequest validRegisterRequest() {
+        return registerRequest(NAME, BIRTH_DATE, LOCATION, EMAIL, PASSWORD);
+    }
+
+    private static RegisterRequest registerRequest(
+            String name, LocalDate birthDate, String location, String email, String password) {
+        return new RegisterRequest(name, birthDate, location, email, password);
+    }
+
     private UserModel createUser() {
-        return new UserModel(
-                "Henk",
-                LocalDate.of(2002, 5, 23),
-                "Tilburg",
-                "henk@fontys.nl",
-                "hashedPassword",
-                "USER"
-        );
+        return new UserModel(NAME, BIRTH_DATE, LOCATION, EMAIL, HASHED_PASSWORD, "USER");
     }
 }
