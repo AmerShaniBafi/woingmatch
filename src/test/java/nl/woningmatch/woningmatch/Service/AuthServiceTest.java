@@ -159,7 +159,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Extra: Onjuist wachtwoord geeft 401")
+    @DisplayName("TC-2.1: Onjuist wachtwoord geeft 401")
     void login_WithWrongPassword_ThrowsUnauthorized() {
         LoginRequest request = new LoginRequest(EMAIL, "verkeerd");
 
