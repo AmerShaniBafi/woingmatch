@@ -58,14 +58,17 @@ public class PreferenceModel {
             PreferenceWeights weights) {
 
         this.user = user;
-        this.maxRent = maxRent;
-        this.preferredLocation = preferredLocation;
-        this.minBedrooms = minBedrooms;
-        this.minArea = minArea;
-        this.energyLabel = energyLabel;
-        this.parkingRequired = parkingRequired;
-        this.balconyRequired = balconyRequired;
-        this.weights = weights;
+
+        updatePreferences(
+                maxRent,
+                preferredLocation,
+                minBedrooms,
+                minArea,
+                energyLabel,
+                parkingRequired,
+                balconyRequired,
+                weights
+        );
     }
 
     public void updatePreferences(
